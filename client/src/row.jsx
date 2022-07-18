@@ -3,6 +3,7 @@ import autoBind from 'auto-bind';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faPlus, faCheck, faBan, faArrowRight, faTimes, faFolderPlus, faFolder} from '@fortawesome/free-solid-svg-icons'
 import { defer } from 'lodash';
+import { changeInput, changeLabel, changeOutput, deleteTest, moveTest } from './CommEvent';
 import ContentEditable from './content-editable';
 import ContextMenu from './context-menu';
 
@@ -433,6 +434,7 @@ export default class Row extends React.Component {
     if (row === "Expand into a template") {
       console.log("EXPAND!!", this.props.id, this.state.contextFocus);
       if (this.state.contextFocus === "value1") {
+        // TODO: Still used?
         this.props.comm.send(this.props.id, {"action": "template_expand_value1"});
       }
     }
@@ -451,6 +453,7 @@ export default class Row extends React.Component {
 
   templateExpandValue1() {
     console.log("templateExpandValue1")
+    // TODO: Still used?
     this.props.comm.send(this.props.id, {"action": "template_expand_value1"});
   }
 
@@ -473,29 +476,30 @@ export default class Row extends React.Component {
   }
 
   changeTestType(e) {
+    // Still used?
     this.props.comm.send(this.props.id, {"type": e.target.value});
     this.setState({type: e.target.value});
   }
 
   labelAsFail(e) {
-    this.props.comm.send(this.props.id, {"label": "fail", "labeler": this.props.user});
-    if (this.props.isSuggestion) {
-      this.props.comm.send(this.props.id, {"topic": this.props.topic});
-    }
-    this.setState({label: "fail"});
+    this.setLabel("fail");
   }
 
   labelAsOffTopic(e) {
-    this.props.comm.send(this.props.id, {"topic": "_DELETE_"});
+    this.props.comm.sendEvent(deleteTest(this.props.id));
     this.setState({label: "off_topic"});
   }
 
   labelAsPass(e) {
-    this.props.comm.send(this.props.id, {"label": "pass", "labeler": this.props.user});
+    this.setLabel("pass");
+  }
+
+  setLabel(label) {
+    this.props.comm.sendEvent(changeLabel(this.props.id, label, this.props.user));
     if (this.props.isSuggestion) {
-      this.props.comm.send(this.props.id, {"topic": this.props.topic});
+      this.props.comm.sendEvent(moveTest(this.props.id, this.props.topic));
     }
-    this.setState({label: "pass"});
+    this.setState({label: label});
   }
 
   onScoreOver(e, key) {
@@ -529,6 +533,7 @@ export default class Row extends React.Component {
   }
 
   toggleHideTopic(e) {
+    // Still used?
     e.preventDefault();
     e.stopPropagation();
 
@@ -584,7 +589,7 @@ export default class Row extends React.Component {
   inputInput(text) {
     console.log("inputInput", text)
     this.setState({input: text, scores: null});
-    this.props.comm.debouncedSend500(this.props.id, {input: text});
+    this.props.comm.debouncedSendEvent500(changeInput(this.props.id, text));
   }
 
   finishInput(text) {
@@ -592,7 +597,7 @@ export default class Row extends React.Component {
     this.setState({editing: false});
     if (text.includes("/")) {
       this.setState({input: text, scores: null});
-      this.props.comm.send(this.props.id, {input: text});
+      this.props.comm.sendEvent(changeInput(this.props.id, text));
     }
   }
 
@@ -600,7 +605,7 @@ export default class Row extends React.Component {
     console.log("inputOutput", text);
     text = text.trim();
     this.setState({output: text, scores: null});
-    this.props.comm.debouncedSend500(this.props.id, {output: text});
+    this.props.comm.debouncedSendEvent500(changeOutput(this.props.id, text));
 
     // if (this.props.value2Edited) {
     //   this.props.value2Edited(this.props.id, this.state.value2, text);
@@ -609,6 +614,7 @@ export default class Row extends React.Component {
   }
 
   setValue2(text) {
+    // Still used?
     this.setState({value2: text, scores: null});
     this.props.comm.debouncedSend500(this.props.id, {value2: text});
   }
@@ -623,7 +629,7 @@ export default class Row extends React.Component {
     this.setState({topic_name: text.replace("\\", "").replace("\n", ""), editing: false});
     let topic = this.props.topic;
     if (this.props.isSuggestion) topic += "/__suggestions__";
-    this.props.comm.send(this.props.id, {topic: topic + "/" + text});
+    this.props.comm.sendEvent(moveTest(this.props.id, topic + "/" + text));
   }
   
   clickRow(e) {
@@ -741,9 +747,9 @@ export default class Row extends React.Component {
       this.setState({dropHighlighted: 0});
       if (this.props.onDrop && id !== this.props.id) {
         if (topic_name !== null && topic_name !== "null") {
-          this.props.onDrop(id, {topic: this.props.topic + "/" + this.state.topic_name + "/" + topic_name});
+          this.props.onDrop(id, this.props.topic + "/" + this.state.topic_name + "/" + topic_name);
         } else {
-          this.props.onDrop(id, {topic: this.props.topic + "/" + this.state.topic_name});
+          this.props.onDrop(id, this.props.topic + "/" + this.state.topic_name);
         }
       }
     }
@@ -754,9 +760,9 @@ export default class Row extends React.Component {
     e.stopPropagation();
     console.log("addToCurrentTopic X", this.props.topic, this.state.topic_name);
     if (this.state.topic_name !== null) {
-      this.props.comm.send(this.props.id, {topic: this.props.topic + "/" + this.state.topic_name});
+      this.props.comm.sendEvent(moveTest(this.props.id, this.props.topic + "/" + this.state.topic_name));
     } else {
-      this.props.comm.send(this.props.id, {topic: this.props.topic});
+      this.props.comm.sendEvent(moveTest(this.props.id, this.props.topic));
     }
   }
 }
